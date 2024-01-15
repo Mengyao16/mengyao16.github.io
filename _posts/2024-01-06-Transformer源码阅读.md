@@ -7,17 +7,15 @@ math: true
 ---
 
 # Transformer代码理解
-代码来源：https://github.com/Kyubyong/transformer/blob/master/modules.py
-
-input : 输入向量，维度为 $batch\times seq\times feature$,$seq$表示序列长度，$feature$表示词向量的embedding维度
-epsilon : 防止除数变成0
-outputs : 输出向量，维度与input相同
-
+代码来源：<https://github.com/Kyubyong/transformer/blob/master/modules.py>
 
 ## module.py
 
 ### Layer Normalization
 层标准化函数实现在特征维度上标准化，在最后一个维度上计算均值和标准差
+input : 输入向量，维度为 $batch\times seq\times feature$,$seq$表示序列长度，$feature$表示词向量的embedding维度
+epsilon : 防止除数变成0
+outputs : 输出向量，维度与input相同
 
 ```python
 def ln(inputs, epsilon = 1e-8, scope="ln"):
@@ -38,7 +36,7 @@ def ln(inputs, epsilon = 1e-8, scope="ln"):
     return outputs
 ```
 ### token embedding
-此函数用于初始化词向量，token embedding是可学习的想来根，输入参数vocab_size表示单词表长度V，num_units表示词嵌入维度E
+此函数用于初始化词向量，token embedding是可学习的向量，输入参数vocab_size表示单词表长度V，num_units表示词嵌入维度E
 zero_pad=True将第一行token embedding置0
 ```python
 def get_token_embeddings(vocab_size, num_units, zero_pad=True):
@@ -169,6 +167,7 @@ def scaled_dot_product_attention(Q, K, V, key_masks,
     return outputs
 ```
 ### mask
+在encoder阶段需要mask掉padding向量，decoder阶段，需要mask对角线以下向量
 ```python
 def mask(inputs, key_masks=None, type=None):
     """Masks paddings on keys or queries to inputs
@@ -199,15 +198,12 @@ def mask(inputs, key_masks=None, type=None):
     if type in ("k", "key", "keys"):
         # 数据类型转化操作
         key_masks = tf.to_float(key_masks)
-        # 输入key_masks 维度(N,seqlen)
-        # tf.shape(inputs)[0] = h * N
-        # tf.shape(key_masks)[0] = N
-        # key_masks = tf.tile(key_masks,[h, 1])
-        # 输出key_masks (h*N, seqlen)
+        # 输入key_masks 维度(N,seqlen),tf.shape(inputs)[0] = h * N,tf.shape(key_masks)[0] = N
+        # key_masks = tf.tile(key_masks,[h, 1]),输出key_masks (h*N, seqlen)
         key_masks = tf.tile(key_masks, [tf.shape(inputs)[0] // tf.shape(key_masks)[0], 1]) # (h*N, seqlen)
         # 输出key_masks (h*N, 1, seqlen)
         key_masks = tf.expand_dims(key_masks, 1)  
-        # (h*N, seq_len, T_k) + (h*N, 1, seqlen) *padding_num
+        # (h*N, seq_len, T_k) + (h*N, 1, T_k) * padding_num
         outputs = inputs + key_masks * padding_num
    # seq mask操作
     elif type in ("f", "future", "right"):
@@ -394,4 +390,67 @@ def train(self, xs, ys):
 
         return loss, train_op, global_step, summaries
 
+```
+## data_load.py
+处理数据的文件
+
+### load_vocab
+从文本文件中读取idx<->token之间的映射，返回两个字典，分别是token2idx和idx2token
+```python
+def load_vocab(vocab_fpath):
+    '''Loads vocabulary file and returns idx<->token maps
+    vocab_fpath: string. vocabulary file path.
+    Note that these are reserved
+    0: <pad>, 1: <unk>, 2: <s>, 3: </s>
+
+    Returns
+    two dictionaries.
+    '''
+    vocab = [line.split()[0] for line in open(vocab_fpath, 'r').read().splitlines()]
+    token2idx = {token: idx for idx, token in enumerate(vocab)}
+    idx2token = {idx: token for idx, token in enumerate(vocab)}
+    return token2idx, idx2token
+
+```
+### load_data 
+fpath1和fpath2分别是源文本和目标文本，从两个文件中加载数据，并且过滤掉长度大于maxlen的句子。
+```python
+def load_data(fpath1, fpath2, maxlen1, maxlen2):
+    '''Loads source and target data and filters out too lengthy samples.
+    fpath1: source file path. string.
+    fpath2: target file path. string.
+    maxlen1: source sent maximum length. scalar.
+    maxlen2: target sent maximum length. scalar.
+
+    Returns
+    sents1: list of source sents
+    sents2: list of target sents
+    '''
+    sents1, sents2 = [], []
+    with open(fpath1, 'r') as f1, open(fpath2, 'r') as f2:
+        for sent1, sent2 in zip(f1, f2):
+            if len(sent1.split()) + 1 > maxlen1: continue # 1: </s>
+            if len(sent2.split()) + 1 > maxlen2: continue  # 1: </s>
+            sents1.append(sent1.strip())
+            sents2.append(sent2.strip())
+    return sents1, sents2
+```
+### encode
+输入字符串，从load_vocab函数的映射编码中寻找token组成的列表
+```python 
+def encode(inp, type, dict):
+    '''Converts string to number. Used for `generator_fn`.
+    inp: 1d byte array.
+    type: "x" (source side) or "y" (target side)
+    dict: token2idx dictionary
+
+    Returns
+    list of numbers
+    '''
+    inp_str = inp.decode("utf-8")
+    if type=="x": tokens = inp_str.split() + ["</s>"]
+    else: tokens = ["<s>"] + inp_str.split() + ["</s>"]
+
+    x = [dict.get(t, dict["<unk>"]) for t in tokens]
+    return x
 ```
