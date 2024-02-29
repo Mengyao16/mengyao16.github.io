@@ -15,7 +15,7 @@ math: true
 ## 自监督学习框架
 
 <div align=center>
-<img src="/assets/img/SSL-framework.png" alt="alt text" width="700"/>
+<img src="/assets/img/SSL-Framework.png" alt="alt text" width="700"/>
 </div>
 
 - 如上图，首先通过两种数据增强的方式将输入item特征$$x_i$$分别转化为$$y_i$$和$$y_{i}'$$
@@ -34,6 +34,7 @@ math: true
 
 RFM（Random Feature Masking）：随机mask一部分特征，两个data aug特征为互斥子集
 存在的问题：使用随机的方式有可能两个子集中存在相关性很强的特征
+
 CFM（Correlated Feature Masking）：通过离线的互信息计算各个特征之间的相关性，先随机选择一个特征，同时mask和他相关性最高的topk特征
 
 ## 联合训练
@@ -42,10 +43,14 @@ CFM（Correlated Feature Masking）：通过离线的互信息计算各个特征
 <img src="/assets/img/SSL-model.png" alt="alt text" width="700"/>
 </div>
 
+$$
+L = L_{main} + \alpha L_{self}
+$$
+
 Heterogeneous Sample Distributions
-训练样本是幂律分布，直接训练会使自监督损失偏向于头部item，
-用于训练自监督loss的训练样本经过均匀采样，
-训练main和ssl损失函数使用的异构样本分布
+
+训练样本是幂律分布，直接训练会使自监督损失偏向于头部item，用于训练自监督loss的训练样本经过均匀采样
+
 原文：
 In practice, we find using the heterogeneous distributions for main and ssl tasks is critical for SSL to achieve superior performance.
 
