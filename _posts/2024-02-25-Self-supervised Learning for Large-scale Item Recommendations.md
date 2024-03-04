@@ -1,5 +1,5 @@
 ---
-title: Self-supervised Learning for Large-scale Item Recommendations
+title: 2020-Self-supervised Learning for Large-scale Item Recommendations
 date: 2024-02-25 12:12:12 +/-TTTT
 categories: [推荐系统]
 tags: [召回]    
