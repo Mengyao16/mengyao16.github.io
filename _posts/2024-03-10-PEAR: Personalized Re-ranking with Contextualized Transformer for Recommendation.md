@@ -17,23 +17,25 @@ math: true
 </div>
 
 ## Feature-Level Interaction
-模型的输入分为三个部分：用户历史行为序列$$B=[b_{1},b_{2}...b_{n}]$$，初始化item序列$$S=[s_{1},s_{2}...s_{n}]$$，和用户特征
-将历史行为序列中的item特征编码和user特征编码拼接在一起，形成特征表示矩阵
+模型的输入分为三个部分：用户历史行为序列$$B=[b_{1},b_{2}...b_{n}]$$，初始化item序列$$S=[s_{1},s_{2}...s_{n}]$$，用户特征
+
+- 将历史行为序列中的item特征编码和user特征编码拼接在一起，形成特征表示矩阵
 通过两层MLP对user特征和item特征进行融合
-为了解决list-level的任务，受到bert的启发，添加一个参数可学习的CLS token在初始化item序列编码的后边
+- 为了解决list-level的任务，受到bert的启发，添加一个参数可学习的CLS token在初始化item序列编码的后边
 
 
 ## Item-level Interaction
 本文中提出的item-level的交互结构，不仅仅能够学习用户历史行为和初始化item两个list内部的item特征交互，还能够学习list之间的特征交互，具体步骤：
 1. 首先，使用一个自注意力层编码用户的历史行为序列
 
-   $$
-   H_{B} = Softmax(\frac{(W_{Q}Z_{B})^T(W_{K}Z_{B})}{\sqrt{d_{h}}})(W_{V}Z_{B})^T
-   $$
+$$
+H_{B} = Softmax(\frac{(W_{Q}Z_{B})^T(W_{K}Z_{B})}{\sqrt{d_{h}}})(W_{V}Z_{B})^T
+$$
 
 2. 使用一个self-attention子层和一个cross-attention子层，为了简化计算，本文将两个子层合并计算
+
 $$
-   H_{S} = Softmax(\frac{(W_{q}Z_{S})^T[(W_{K1}H_{B}^{T},W_{k2}Z_{S}])}{\sqrt{d_{h}}})(W_{v1}H_{B}^{T},W_{v2}Z_{S})^{T}
+H_{S} = Softmax(\frac{(W_{q}Z_{S})^T[(W_{K1}H_{B}^{T},W_{k2}Z_{S}])}{\sqrt{d_{h}}})(W_{v1}H_{B}^{T},W_{v2}Z_{S})^{T}
 $$
    
 
